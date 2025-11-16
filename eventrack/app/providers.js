@@ -2,6 +2,7 @@
 
 import { ChakraProvider } from '@chakra-ui/react'
 import theme from '../theme'
+import { AuthProvider } from '../contexts/AuthContext'
 
 export function Providers({ children }) {
   return (
@@ -9,7 +10,9 @@ export function Providers({ children }) {
       theme={theme} 
       toastOptions={{ defaultOptions: { position: 'top' } }}
     >
-      {children}
+      <AuthProvider>
+        {children}
+      </AuthProvider>
     </ChakraProvider>
   )
 }

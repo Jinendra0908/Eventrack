@@ -1,32 +1,54 @@
 'use client'
 
-import { Box, Flex, Text, Heading, VStack, useDisclosure, IconButton } from '@chakra-ui/react'
+import { Box, Flex, Text, Heading, VStack, useDisclosure, IconButton, Button, Link as ChakraLink } from '@chakra-ui/react'
 import { useEffect, useState, Suspense } from 'react'
 import { HamburgerIcon } from '@chakra-ui/icons'
 import { Feed, Sidebar, RightSidebar, MobileNavbar } from '../components/LazyComponents'
 import LoadingSpinner from '../components/LoadingSpinner'
+import ClientOnly from '../components/ClientOnly'
+import { useAuth } from '../contexts/AuthContext'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function Home() {
-  const [username, setUsername] = useState('')
-  const [hobbies, setHobbies] = useState([])
   const [mounted, setMounted] = useState(false)
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const { user, isAuthenticated, loading } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
-    // Set mounted to true after component mounts
     setMounted(true)
-    
-    // Get user data from localStorage with debounced execution
-    const timeoutId = setTimeout(() => {
-      const storedUsername = localStorage.getItem('username')
-      const storedHobbies = JSON.parse(localStorage.getItem('hobbies') || '[]')
-      
-      if (storedUsername) setUsername(storedUsername)
-      if (storedHobbies) setHobbies(storedHobbies)
-    }, 100)
-
-    return () => clearTimeout(timeoutId)
   }, [])
+
+  // Don't render anything until mounted (prevents hydration mismatch)
+  if (!mounted) {
+    return (
+      <Box 
+        minH="100vh" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        bgGradient="linear(135deg, #000000 0%, #0a2626 100%)"
+      >
+        <LoadingSpinner />
+      </Box>
+    )
+  }
+
+  // Show loading while auth is being checked
+  if (loading) {
+    return (
+      <Box 
+        minH="100vh" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        bgGradient="linear(135deg, #000000 0%, #0a2626 100%)"
+      >
+        <LoadingSpinner />
+      </Box>
+    )
+  }
 
   return (
     <Box
@@ -61,10 +83,14 @@ export default function Home() {
       </Box>
 
       {/* Desktop Sidebar */}
-      <Sidebar isOpen={isOpen} onClose={onClose} />
+      <ClientOnly>
+        <Sidebar isOpen={isOpen} onClose={onClose} />
+      </ClientOnly>
 
       {/* Mobile Bottom Navigation */}
-      <MobileNavbar />
+      <ClientOnly>
+        <MobileNavbar />
+      </ClientOnly>
 
       {/* Main Content */}
       <Flex
@@ -82,37 +108,56 @@ export default function Home() {
           px={{ base: 2, md: 6 }}
           maxW={{ base: "100%", md: "2xl", lg: "4xl" }}
         >
-          {/* Welcome Message (if user data exists) */}
-          {mounted && username && (
+          {/* Welcome Message */}
+          <ClientOnly>
             <VStack spacing={4} mb={6} textAlign="center" px={4}>
-              <Heading 
-                size={{ base: "sm", md: "md" }} 
-                color="teal.300"
-              >
-                Welcome, {username}!
-              </Heading>
-              {hobbies.length > 0 && (
-                <VStack spacing={3}>
-                  <Text fontSize="sm" color="gray.400">Your interests:</Text>
-                  <Flex wrap="wrap" gap={2} justify="center" maxW="md">
-                    {hobbies.map((hobby, index) => (
-                      <Text
-                        key={index}
-                        px={3}
-                        py={1}
-                        bg="teal.900"
-                        rounded="full"
-                        fontSize="xs"
-                        whiteSpace="nowrap"
-                      >
-                        {hobby}
-                      </Text>
-                    ))}
-                  </Flex>
-                </VStack>
+              {user ? (
+                <>
+                  <Heading 
+                    size={{ base: "sm", md: "md" }} 
+                    color="teal.300"
+                  >
+                    Welcome back, {user.username}!
+                  </Heading>
+                  <Text fontSize="sm" color="gray.400">
+                    {user.firstName} {user.lastName}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Heading 
+                    size={{ base: "lg", md: "xl" }} 
+                    color="teal.300"
+                  >
+                    Welcome to EventTrack
+                  </Heading>
+                  <Text fontSize="md" color="gray.400" maxW="md">
+                    Discover amazing events happening around you. Join communities, connect with people, and never miss out on what matters to you.
+                  </Text>
+                  <VStack spacing={3} mt={4}>
+                    <Button
+                      as={Link}
+                      href="/signup"
+                      colorScheme="teal"
+                      size="lg"
+                      bgGradient="linear(135deg, teal.600 0%, #0a2626 100%)"
+                      _hover={{ opacity: 0.9 }}
+                    >
+                      Get Started
+                    </Button>
+                    <Text 
+                      as={Link}
+                      href="/login"
+                      color="teal.300" 
+                      _hover={{ textDecoration: 'underline' }}
+                    >
+                      Already have an account? Sign in
+                    </Text>
+                  </VStack>
+                </>
               )}
             </VStack>
-          )}
+          </ClientOnly>
 
           {/* Feed */}
           <Suspense fallback={<LoadingSpinner message="Loading posts..." />}>

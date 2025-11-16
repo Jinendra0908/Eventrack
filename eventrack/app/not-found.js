@@ -38,36 +38,36 @@ const NotFoundPage = () => {
           </VStack>
 
           <VStack spacing={4}>
-            <Link href="/" passHref>
-              <Button
-                leftIcon={<FaHome />}
-                bgGradient="linear(135deg, teal.600 0%, #0a2626 100%)"
-                color="white"
-                _hover={{
-                  opacity: 0.9,
-                  transform: 'translateY(-1px)'
-                }}
-                _active={{
-                  transform: 'translateY(0)'
-                }}
-                size="lg"
-              >
-                Go Home
-              </Button>
-            </Link>
+            <Button
+              as={Link}
+              href="/"
+              leftIcon={<FaHome />}
+              bgGradient="linear(135deg, teal.600 0%, #0a2626 100%)"
+              color="white"
+              _hover={{
+                opacity: 0.9,
+                transform: 'translateY(-1px)'
+              }}
+              _active={{
+                transform: 'translateY(0)'
+              }}
+              size="lg"
+            >
+              Go Home
+            </Button>
             
-            <Link href="/explore" passHref>
-              <Button
-                variant="ghost"
-                color="gray.400"
-                _hover={{
-                  color: "white",
-                  bg: "rgba(255, 255, 255, 0.1)"
-                }}
-              >
-                Explore Events
-              </Button>
-            </Link>
+            <Button
+              as={Link}
+              href="/explore"
+              variant="ghost"
+              color="gray.400"
+              _hover={{
+                color: "white",
+                bg: "rgba(255, 255, 255, 0.1)"
+              }}
+            >
+              Explore Events
+            </Button>
           </VStack>
         </VStack>
       </Container>

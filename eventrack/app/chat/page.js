@@ -12,7 +12,8 @@ import {
   Avatar,
   Flex,
   IconButton,
-  Badge
+  Badge,
+  Spinner
 } from '@chakra-ui/react'
 import { 
   FaPaperPlane, 
@@ -20,8 +21,10 @@ import {
   FaUsers,
   FaArrowLeft
 } from 'react-icons/fa'
-import { useState, useCallback, useMemo, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useAuth } from '../../contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 
 const ChatMessage = ({ message, isOwn = false }) => (
   <HStack
@@ -75,9 +78,12 @@ const ChatMessage = ({ message, isOwn = false }) => (
 )
 
 const ChatPage = () => {
+  const [mounted, setMounted] = useState(false)
   const [message, setMessage] = useState('')
+  const { user, isAuthenticated, loading } = useAuth()
+  const router = useRouter()
   const messageIdRef = useRef(4) // Start from 4 since we have 3 initial messages
-  
+
   // Memoize initial messages to prevent re-creation
   const initialMessages = useMemo(() => [
     {
@@ -129,6 +135,47 @@ const ChatPage = () => {
       handleSendMessage()
     }
   }, [handleSendMessage])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (mounted && !loading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [mounted, loading, isAuthenticated, router])
+
+  // Show loading while checking authentication or not mounted
+  if (!mounted || loading) {
+    return (
+      <Box 
+        minH="100vh" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        bgGradient="linear(135deg, #000000 0%, #0a2626 100%)"
+      >
+        <Spinner size="xl" color="teal.300" />
+      </Box>
+    )
+  }
+
+  // Show loading while redirecting
+  if (!isAuthenticated) {
+    return (
+      <Box 
+        minH="100vh" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        bgGradient="linear(135deg, #000000 0%, #0a2626 100%)"
+      >
+        <Spinner size="xl" color="teal.300" />
+      </Box>
+    )
+  }
 
   return (
     <Box

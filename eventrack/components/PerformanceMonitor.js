@@ -1,9 +1,17 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 const PerformanceMonitor = () => {
+  const [isClient, setIsClient] = useState(false)
+  
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient || typeof window === 'undefined') return
+    
     // Web Vitals monitoring
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
@@ -24,7 +32,7 @@ const PerformanceMonitor = () => {
 
     // Cleanup
     return () => observer.disconnect()
-  }, [])
+  }, [isClient])
 
   return null
 }

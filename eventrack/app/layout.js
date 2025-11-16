@@ -1,5 +1,6 @@
 import { Providers } from './providers'
 import PerformanceMonitor from '../components/PerformanceMonitor'
+import ClientOnly from '../components/ClientOnly'
 import "./globals.css";
 
 export const metadata = {
@@ -9,10 +10,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <Providers>
-          <PerformanceMonitor />
+          <ClientOnly>
+            <PerformanceMonitor />
+          </ClientOnly>
           {children}
         </Providers>
       </body>

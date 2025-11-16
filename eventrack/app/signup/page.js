@@ -17,12 +17,17 @@ import {
   Grid,
   GridItem,
   Icon,
-  useToast
+  useToast,
+  Spinner,
+  Radio,
+  RadioGroup,
+  Stack
 } from '@chakra-ui/react'
 import { FaCalendarAlt } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '../../contexts/AuthContext'
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
@@ -32,16 +37,45 @@ const SignupPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'participant', // Default to participant
     agreeToTerms: false
   })
   const [passwordStrength, setPasswordStrength] = useState(0)
   const [mounted, setMounted] = useState(false)
-  const toast = useToast()
+  const { register, loading, isAuthenticated } = useAuth()
   const router = useRouter()
+  const toast = useToast()
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    // Redirect if already authenticated
+    if (mounted && isAuthenticated) {
+      router.push('/')
+    }
+  }, [mounted, isAuthenticated, router])
+
+  // Don't render anything until mounted (prevents hydration mismatch)
+  if (!mounted) {
+    return null
+  }
+
+  // Show loading while redirecting
+  if (isAuthenticated) {
+    return (
+      <Box 
+        minH="100vh" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        bgGradient="linear(135deg, #000000 0%, #0a2626 100%)"
+      >
+        <Spinner size="xl" color="teal.300" />
+      </Box>
+    )
+  }
 
   const calculatePasswordStrength = (password) => {
     let strength = 0
@@ -72,7 +106,9 @@ const SignupPage = () => {
     }
   }
 
-  const saveUserData = () => {
+  const handleSignup = async (e) => {
+    e.preventDefault()
+    
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.username || !formData.email || !formData.password) {
       toast({
@@ -110,25 +146,27 @@ const SignupPage = () => {
       return
     }
 
-    if (mounted) {
-      // Save to localStorage
-      localStorage.setItem('username', formData.username)
-      localStorage.setItem('email', formData.email)
-      localStorage.setItem('firstName', formData.firstName)
-      localStorage.setItem('lastName', formData.lastName)
-      
+    if (passwordStrength < 60) {
       toast({
-        title: 'Account Created!',
-        description: 'Welcome to EventTrack',
-        status: 'success',
+        title: 'Weak Password',
+        description: 'Please create a stronger password',
+        status: 'error',
         duration: 3000,
         isClosable: true,
         position: 'top'
       })
-      
-      // Redirect to preferences page (you can create this later)
-      router.push('/preferences')
+      return
     }
+
+    // Register user using AuthContext
+    await register({
+      username: formData.username,
+      email: formData.email,
+      password: formData.password,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      role: formData.role
+    })
   }
 
   return (
@@ -153,6 +191,8 @@ const SignupPage = () => {
 
         {/* Signup Form */}
         <Box
+          as="form"
+          onSubmit={handleSignup}
           bg="rgba(0, 0, 0, 0.5)"
           rounded="lg"
           p={8}
@@ -291,6 +331,48 @@ const SignupPage = () => {
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
               />
             </FormControl>
+
+            {/* Role Selection */}
+            <FormControl>
+              <FormLabel color="gray.400">I am joining as a:</FormLabel>
+              <RadioGroup 
+                value={formData.role} 
+                onChange={(value) => handleInputChange('role', value)}
+              >
+                <Stack direction="column" spacing={3}>
+                  <Box>
+                    <Radio 
+                      value="participant" 
+                      colorScheme="teal"
+                      _focus={{
+                        ring: 2,
+                        ringColor: 'teal.300'
+                      }}
+                    >
+                      <Text color="white" fontWeight="medium" ml={2}>Participant</Text>
+                    </Radio>
+                    <Text fontSize="sm" color="gray.400" ml={6} mt={1}>
+                      I want to discover and attend events
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Radio 
+                      value="host" 
+                      colorScheme="teal"
+                      _focus={{
+                        ring: 2,
+                        ringColor: 'teal.300'
+                      }}
+                    >
+                      <Text color="white" fontWeight="medium" ml={2}>Host/Organizer</Text>
+                    </Radio>
+                    <Text fontSize="sm" color="gray.400" ml={6} mt={1}>
+                      I want to create and manage events
+                    </Text>
+                  </Box>
+                </Stack>
+              </RadioGroup>
+            </FormControl>
             
             {/* Terms Checkbox */}
             <FormControl>
@@ -314,6 +396,7 @@ const SignupPage = () => {
             
             {/* Submit Button */}
             <Button
+              type="submit"
               w="full"
               bgGradient="linear(135deg, teal.600 0%, #0a2626 100%)"
               color="white"
@@ -325,7 +408,9 @@ const SignupPage = () => {
                 transform: 'translateY(0)'
               }}
               size="lg"
-              onClick={saveUserData}
+              isLoading={loading}
+              loadingText="Creating account..."
+              spinner={<Spinner size="sm" />}
             >
               Create Account
             </Button>
@@ -336,11 +421,9 @@ const SignupPage = () => {
         <Box textAlign="center" mt={8}>
           <Text color="gray.400">
             Already have an account?{' '}
-            <Link href="/login" passHref>
-              <ChakraLink color="teal.300" _hover={{ textDecoration: 'underline' }} fontWeight="medium">
-                Log in
-              </ChakraLink>
-            </Link>
+            <ChakraLink as={Link} href="/login" color="teal.300" _hover={{ textDecoration: 'underline' }} fontWeight="medium">
+              Log in
+            </ChakraLink>
           </Text>
         </Box>
       </Container>

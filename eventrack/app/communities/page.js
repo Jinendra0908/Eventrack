@@ -21,7 +21,7 @@ import { memo, useMemo } from 'react'
 import Link from 'next/link'
 
 const CommunityCard = memo(({ community }) => (
-  <Link href="/chat" passHref>
+  <Link href="/chat">
     <Box
       bg="rgba(0, 0, 0, 0.7)"
       rounded="lg"
@@ -31,7 +31,6 @@ const CommunityCard = memo(({ community }) => (
         bg: "rgba(0, 0, 0, 0.9)",
         transform: "translateY(-2px)"
       }}
-      cursor="pointer"
     >
       <HStack spacing={4}>
         <Box

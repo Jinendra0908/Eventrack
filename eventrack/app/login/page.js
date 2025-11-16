@@ -12,12 +12,14 @@ import {
   FormLabel,
   Link as ChakraLink,
   Icon,
-  useToast
+  useToast,
+  Spinner
 } from '@chakra-ui/react'
 import { FaCalendarAlt } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '../../contexts/AuthContext'
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -25,12 +27,40 @@ const LoginPage = () => {
     password: ''
   })
   const [mounted, setMounted] = useState(false)
-  const toast = useToast()
+  const { login, loading, isAuthenticated } = useAuth()
   const router = useRouter()
+  const toast = useToast()
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    // Redirect if already authenticated
+    if (mounted && isAuthenticated) {
+      router.push('/')
+    }
+  }, [mounted, isAuthenticated, router])
+
+  // Don't render anything until mounted (prevents hydration mismatch)
+  if (!mounted) {
+    return null
+  }
+
+  // Show loading while redirecting
+  if (isAuthenticated) {
+    return (
+      <Box 
+        minH="100vh" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        bgGradient="linear(135deg, #000000 0%, #0a2626 100%)"
+      >
+        <Spinner size="xl" color="teal.300" />
+      </Box>
+    )
+  }
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -39,7 +69,9 @@ const LoginPage = () => {
     }))
   }
 
-  const handleLogin = () => {
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    
     if (!formData.email || !formData.password) {
       toast({
         title: 'Missing Information',
@@ -52,32 +84,7 @@ const LoginPage = () => {
       return
     }
 
-    if (mounted) {
-      // Check if user exists in localStorage (simple demo logic)
-      const savedEmail = localStorage.getItem('email')
-      
-      if (savedEmail === formData.email) {
-        toast({
-          title: 'Welcome Back!',
-          description: 'Successfully logged in',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-          position: 'top'
-        })
-        
-        router.push('/')
-      } else {
-        toast({
-          title: 'Login Failed',
-          description: 'Invalid email or password',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-          position: 'top'
-        })
-      }
-    }
+    await login(formData.email, formData.password)
   }
 
   return (
@@ -102,6 +109,8 @@ const LoginPage = () => {
 
         {/* Login Form */}
         <Box
+          as="form"
+          onSubmit={handleLogin}
           bg="rgba(0, 0, 0, 0.5)"
           rounded="lg"
           p={8}
@@ -153,6 +162,7 @@ const LoginPage = () => {
             
             {/* Submit Button */}
             <Button
+              type="submit"
               w="full"
               bgGradient="linear(135deg, teal.600 0%, #0a2626 100%)"
               color="white"
@@ -164,7 +174,9 @@ const LoginPage = () => {
                 transform: 'translateY(0)'
               }}
               size="lg"
-              onClick={handleLogin}
+              isLoading={loading}
+              loadingText="Signing in..."
+              spinner={<Spinner size="sm" />}
             >
               Sign In
             </Button>
@@ -175,11 +187,9 @@ const LoginPage = () => {
         <Box textAlign="center" mt={8}>
           <Text color="gray.400">
             Don't have an account?{' '}
-            <Link href="/signup" passHref>
-              <ChakraLink color="teal.300" _hover={{ textDecoration: 'underline' }} fontWeight="medium">
-                Create account
-              </ChakraLink>
-            </Link>
+            <ChakraLink as={Link} href="/signup" color="teal.300" _hover={{ textDecoration: 'underline' }} fontWeight="medium">
+              Create account
+            </ChakraLink>
           </Text>
         </Box>
       </Container>

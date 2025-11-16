@@ -17,33 +17,64 @@ import {
   InputGroup,
   InputLeftElement,
   Flex,
-  Badge
+  Badge,
+  IconButton,
+  useToast
 } from '@chakra-ui/react'
 import { 
   FaSearch, 
   FaCalendarAlt, 
-  FaMapMarkerAlt 
+  FaMapMarkerAlt,
+  FaBookmark,
+  FaRegBookmark,
+  FaUserPlus,
+  FaCheck
 } from 'react-icons/fa'
-import { useState, memo } from 'react'
+import { useState, memo, useEffect } from 'react'
 import { Sidebar, MobileNavbar } from '../../components/LazyComponents'
 
-const EventCard = memo(({ event }) => (
+const EventCard = memo(({ event, onSave, isSaved, onRegister, isRegistered, mounted }) => (
   <Box
     bg="gray.800"
     rounded="lg"
     overflow="hidden"
     transition="transform 0.3s ease"
     _hover={{ transform: "scale(1.02)" }}
-    cursor="pointer"
+    position="relative"
   >
-    <Image
-      src={event.image}
-      alt={event.title}
-      w="full"
-      h={64}
-      objectFit="cover"
-      loading="lazy"
-    />
+    <Box position="relative">
+      <Image
+        src={event.image}
+        alt={event.title}
+        w="full"
+        h={64}
+        objectFit="cover"
+        loading="lazy"
+      />
+      {mounted && (
+        <IconButton
+          icon={<Icon as={isSaved ? FaBookmark : FaRegBookmark} />}
+          position="absolute"
+          top={2}
+          right={2}
+          size="sm"
+          colorScheme={isSaved ? "red" : "gray"}
+          bg={isSaved ? "red.500" : "rgba(0, 0, 0, 0.6)"}
+          color="white"
+          _hover={{
+            bg: isSaved ? "red.600" : "rgba(0, 0, 0, 0.8)",
+            transform: "scale(1.1)"
+          }}
+          transition="all 0.2s ease"
+          onClick={(e) => {
+            e.stopPropagation()
+            onSave(event)
+          }}
+          aria-label={isSaved ? "Remove from saved" : "Save event"}
+          zIndex={1}
+        />
+      )}
+    </Box>
     <Box p={4}>
       <HStack spacing={2} mb={2}>
         <Avatar
@@ -58,19 +89,37 @@ const EventCard = memo(({ event }) => (
       <Heading size="md" mb={1}>
         {event.title}
       </Heading>
-      <Text color="gray.400" fontSize="sm" mb={3}>
+      <Text color="gray.400" fontSize="sm" mb={3} noOfLines={2}>
         {event.description}
       </Text>
-      <Flex justify="space-between" fontSize="sm" color="gray.400">
-        <HStack spacing={1}>
-          <Icon as={FaCalendarAlt} />
-          <Text>{event.date}</Text>
-        </HStack>
-        <HStack spacing={1}>
-          <Icon as={FaMapMarkerAlt} />
-          <Text>{event.location}</Text>
-        </HStack>
-      </Flex>
+      <VStack spacing={3} align="stretch">
+        <Flex justify="space-between" fontSize="sm" color="gray.400">
+          <HStack spacing={1}>
+            <Icon as={FaCalendarAlt} />
+            <Text>{event.date}</Text>
+          </HStack>
+          <HStack spacing={1}>
+            <Icon as={FaMapMarkerAlt} />
+            <Text noOfLines={1}>{event.location}</Text>
+          </HStack>
+        </Flex>
+        {mounted && (
+          <Button
+            leftIcon={<Icon as={isRegistered ? FaCheck : FaUserPlus} />}
+            size="sm"
+            colorScheme={isRegistered ? "green" : "teal"}
+            variant={isRegistered ? "solid" : "outline"}
+            width="full"
+            onClick={(e) => {
+              e.stopPropagation()
+              onRegister(event)
+            }}
+            isDisabled={isRegistered}
+          >
+            {isRegistered ? "Registered" : "Register for Event"}
+          </Button>
+        )}
+      </VStack>
     </Box>
   </Box>
 ))
@@ -99,99 +148,236 @@ CategoryButton.displayName = 'CategoryButton'
 const ExplorePage = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
+  const [savedEvents, setSavedEvents] = useState([])
+  const [registeredEvents, setRegisteredEvents] = useState([])
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
+  const toast = useToast()
 
-  const categories = ['All', 'Trending', 'Music', 'Sports', 'Gaming', 'Art', 'Technology']
-
-  const events = [
-    {
-      id: 1,
-      title: 'Summer Music Festival',
-      description: 'Join us for the biggest music event of the year!',
-      image: 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg',
-      date: 'June 15, 2025',
-      location: 'Bhopal',
-      organizer: {
-        name: 'MusicEvents',
-        avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg'
-      },
-      category: 'Music'
-    },
-    {
-      id: 2,
-      title: 'Future Tech Conference',
-      description: 'Exploring the latest in AI and blockchain technology',
-      image: 'https://images.pexels.com/photos/274422/pexels-photo-274422.jpeg',
-      date: 'July 22, 2025',
-      location: 'Indore',
-      organizer: {
-        name: 'TechTalks',
-        avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg'
-      },
-      category: 'Technology'
-    },
-    {
-      id: 3,
-      title: 'Modern Art Exhibition',
-      description: 'Showcasing contemporary artists from around the world',
-      image: 'https://images.pexels.com/photos/248159/pexels-photo-248159.jpeg',
-      date: 'August 5, 2025',
-      location: 'Bhopal',
-      organizer: {
-        name: 'ArtGallery',
-        avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg'
-      },
-      category: 'Art'
-    },
-    {
-      id: 4,
-      title: 'Gaming Championship',
-      description: 'Ultimate esports tournament with massive prizes',
-      image: 'https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg',
-      date: 'September 10, 2025',
-      location: 'Delhi',
-      organizer: {
-        name: 'GameMasters',
-        avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg'
-      },
-      category: 'Gaming'
-    },
-    {
-      id: 5,
-      title: 'Marathon Championship',
-      description: 'Annual city marathon for fitness enthusiasts',
-      image: 'https://images.pexels.com/photos/618612/pexels-photo-618612.jpeg',
-      date: 'October 15, 2025',
-      location: 'Mumbai',
-      organizer: {
-        name: 'FitLife',
-        avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg'
-      },
-      category: 'Sports'
-    },
-    {
-      id: 6,
-      title: 'Startup Pitch Night',
-      description: 'Innovative startups presenting their ideas to investors',
-      image: 'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg',
-      date: 'November 20, 2025',
-      location: 'Bangalore',
-      organizer: {
-        name: 'StartupHub',
-        avatar: 'https://images.pexels.com/photos/3778966/pexels-photo-3778966.jpeg'
-      },
-      category: 'Technology'
-    }
-  ]
-
-  const filteredEvents = events.filter(event => {
-    const matchesCategory = activeCategory === 'All' || event.category === activeCategory
-    const matchesSearch = searchQuery === '' || 
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchQuery.toLowerCase())
+  // Load saved events from localStorage and fetch events from API
+  useEffect(() => {
+    setMounted(true)
     
-    return matchesCategory && matchesSearch
-  })
+    // Load saved events from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('savedEvents')
+      if (saved) {
+        try {
+          setSavedEvents(JSON.parse(saved))
+        } catch (error) {
+          console.error('Error loading saved events:', error)
+        }
+      }
+      
+      // Load registered events from localStorage
+      const registered = localStorage.getItem('registeredEvents')
+      if (registered) {
+        try {
+          setRegisteredEvents(JSON.parse(registered))
+        } catch (error) {
+          console.error('Error loading registered events:', error)
+        }
+      }
+    }
+    
+    // Fetch events from API
+    fetchEvents()
+  }, [])
+
+  // Fetch events from database
+  const fetchEvents = async (category = 'All', search = '') => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      
+      if (category !== 'All') {
+        params.append('category', category)
+      }
+      
+      if (search) {
+        params.append('search', search)
+      }
+      
+      const response = await fetch(`/api/events?${params}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setEvents(data.data.events || [])
+      } else {
+        console.error('Error fetching events:', data.error)
+        toast({
+          title: "Error",
+          description: "Failed to load events. Please try again.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error)
+      toast({
+        title: "Error",
+        description: "Failed to connect to server. Please check your internet connection.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Refetch events when category or search changes
+  useEffect(() => {
+    if (mounted) {
+      fetchEvents(activeCategory, searchQuery)
+    }
+  }, [activeCategory, searchQuery, mounted])
+
+  // Save event function
+  const handleSaveEvent = (event) => {
+    const eventWithExtraData = {
+      ...event,
+      id: event._id || event.id, // Use MongoDB _id or fallback to id
+      venue: event.venue || event.location, // Use venue or fallback to location
+    }
+
+    const eventId = event._id || event.id
+    const isAlreadySaved = savedEvents.some(savedEvent => 
+      (savedEvent._id === eventId) || (savedEvent.id === eventId)
+    )
+    
+    let updatedSavedEvents
+    if (isAlreadySaved) {
+      // Remove from saved
+      updatedSavedEvents = savedEvents.filter(savedEvent => 
+        savedEvent._id !== eventId && savedEvent.id !== eventId
+      )
+      toast({
+        title: "Event removed from saved",
+        description: `${event.title} has been removed from your saved events.`,
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      })
+    } else {
+      // Add to saved
+      updatedSavedEvents = [...savedEvents, eventWithExtraData]
+      toast({
+        title: "Event saved!",
+        description: `${event.title} has been added to your saved events.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+    
+    setSavedEvents(updatedSavedEvents)
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('savedEvents', JSON.stringify(updatedSavedEvents))
+    }
+  }
+
+  // Check if event is saved
+  const isEventSaved = (eventId) => {
+    return savedEvents.some(savedEvent => 
+      savedEvent._id === eventId || savedEvent.id === eventId
+    )
+  }
+
+  // Register for event function
+  const handleRegisterEvent = async (event) => {
+    const eventId = event._id || event.id
+    
+    // Check if already registered
+    const isAlreadyRegistered = registeredEvents.some(regEvent => 
+      (regEvent._id === eventId) || (regEvent.id === eventId)
+    )
+    
+    if (isAlreadyRegistered) {
+      toast({
+        title: "Already registered",
+        description: "You have already registered for this event.",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      })
+      return
+    }
+    
+    try {
+      // Call API to register for event
+      const token = localStorage.getItem('auth-token')
+      if (!token) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to register for events.",
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        })
+        return
+      }
+      
+      const response = await fetch(`/api/events/${eventId}/register`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        // Add to registered events
+        const updatedRegisteredEvents = [...registeredEvents, event]
+        setRegisteredEvents(updatedRegisteredEvents)
+        
+        // Save to localStorage
+        localStorage.setItem('registeredEvents', JSON.stringify(updatedRegisteredEvents))
+        
+        toast({
+          title: "Registration successful!",
+          description: `You are now registered for ${event.title}.`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        })
+      } else {
+        toast({
+          title: "Registration failed",
+          description: data.message || "Failed to register for event.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        })
+      }
+    } catch (error) {
+      console.error('Error registering for event:', error)
+      toast({
+        title: "Error",
+        description: "Failed to register for event. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
+  // Check if user is registered for event
+  const isEventRegistered = (eventId) => {
+    return registeredEvents.some(regEvent => 
+      regEvent._id === eventId || regEvent.id === eventId
+    )
+  }
+
+  const categories = ['All', 'Trending', 'Music', 'Sports', 'Gaming', 'Art', 'Technology', 'Business']
+
+  // Events are now fetched from database and stored in state
 
   return (
     <Box
@@ -274,7 +460,7 @@ const ExplorePage = () => {
                 {activeCategory === 'All' ? 'All Events' : `${activeCategory} Events`}
               </Heading>
               <Badge colorScheme="teal" variant="solid">
-                {filteredEvents.length} events
+                {loading ? '...' : `${events.length} events`}
               </Badge>
             </HStack>
           </Container>
@@ -283,7 +469,7 @@ const ExplorePage = () => {
         {/* Event Grid */}
         <Box p={4}>
           <Container maxW="full">
-            {filteredEvents.length > 0 ? (
+            {loading ? (
               <Grid
                 templateColumns={{
                   base: "1fr",
@@ -293,9 +479,45 @@ const ExplorePage = () => {
                 }}
                 gap={4}
               >
-                {filteredEvents.map((event) => (
-                  <GridItem key={event.id}>
-                    <EventCard event={event} />
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <GridItem key={index}>
+                    <Box
+                      bg="gray.800"
+                      rounded="lg"
+                      overflow="hidden"
+                      h={80}
+                      animation="pulse"
+                    >
+                      <Box bg="gray.700" h={64} />
+                      <Box p={4}>
+                        <Box bg="gray.700" h={4} mb={2} rounded />
+                        <Box bg="gray.600" h={3} mb={2} rounded />
+                        <Box bg="gray.600" h={3} w="70%" rounded />
+                      </Box>
+                    </Box>
+                  </GridItem>
+                ))}
+              </Grid>
+            ) : events.length > 0 ? (
+              <Grid
+                templateColumns={{
+                  base: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  lg: "repeat(3, 1fr)",
+                  xl: "repeat(4, 1fr)"
+                }}
+                gap={4}
+              >
+                {events.map((event) => (
+                  <GridItem key={event._id || event.id}>
+                    <EventCard 
+                      event={event} 
+                      onSave={handleSaveEvent}
+                      isSaved={isEventSaved(event._id || event.id)}
+                      onRegister={handleRegisterEvent}
+                      isRegistered={isEventRegistered(event._id || event.id)}
+                      mounted={mounted}
+                    />
                   </GridItem>
                 ))}
               </Grid>

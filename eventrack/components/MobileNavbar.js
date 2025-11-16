@@ -6,20 +6,37 @@ import {
   FaCompass, 
   FaBell, 
   FaBookmark, 
-  FaUser
+  FaUser,
+  FaCalendarAlt
 } from 'react-icons/fa'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAuth } from '../contexts/AuthContext'
+import { useState, useEffect } from 'react'
 
 const MobileNavbar = () => {
   const pathname = usePathname()
+  const { user, isAuthenticated } = useAuth()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   const navItems = [
     { icon: FaHome, label: 'Home', href: '/' },
     { icon: FaCompass, label: 'Explore', href: '/explore' },
-    { icon: FaBell, label: 'Notifications', href: '/notifications' },
-    { icon: FaBookmark, label: 'Saved', href: '/saved' },
-    { icon: FaUser, label: 'Profile', href: '/profile' },
+    ...(mounted && isAuthenticated ? [
+      { icon: FaBell, label: 'Notifications', href: '/notifications' },
+      { icon: FaBookmark, label: 'Saved', href: '/saved' },
+      { 
+        icon: user?.role === 'host' ? FaCalendarAlt : FaUser, 
+        label: user?.role === 'host' ? 'Host' : 'Profile', 
+        href: user?.role === 'host' ? '/host' : '/profile' 
+      },
+    ] : [
+      { icon: FaUser, label: 'Profile', href: '/profile' },
+    ])
   ]
 
   return (
@@ -47,7 +64,6 @@ const MobileNavbar = () => {
               color={pathname === item.href ? 'teal.300' : 'gray.400'}
               _hover={{ color: 'teal.300' }}
               transition="all 0.2s"
-              cursor="pointer"
             >
               <Icon as={item.icon} boxSize={5} />
               <Text fontSize="xs" fontWeight="medium">

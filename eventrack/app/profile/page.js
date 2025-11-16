@@ -20,17 +20,21 @@ import {
   Flex,
   Badge,
   Divider,
-  Center
+  Center,
+  Spinner
 } from '@chakra-ui/react'
 import { 
   FaCalendarAlt, 
   FaBookmark, 
   FaClock,
   FaEdit,
-  FaCog
+  FaCog,
+  FaSignOutAlt
 } from 'react-icons/fa'
 import { useState, useEffect, memo } from 'react'
 import { Sidebar, MobileNavbar } from '../../components/LazyComponents'
+import { useAuth } from '../../contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 
 const StatCard = memo(({ value, label }) => (
   <VStack spacing={1}>
@@ -68,36 +72,54 @@ ContentItem.displayName = 'ContentItem'
 
 const ProfilePage = () => {
   const [mounted, setMounted] = useState(false)
-  const [userProfile, setUserProfile] = useState({
-    name: 'Rohan Sharma',
-    username: '@sharmarohan',
-    bio: 'Digital creator | Event organizer | Deadline chaser | Making things happen one day at a time',
-    avatar: 'https://images.pexels.com/photos/736716/pexels-photo-736716.jpeg',
-    stats: {
-      events: 142,
-      followers: '1.2k',
-      following: 356
-    }
-  })
+  const { user, isAuthenticated, loading, logout } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
-    
-    // Load user data from localStorage if available
-    if (typeof window !== 'undefined') {
-      const savedUsername = localStorage.getItem('username')
-      const savedFirstName = localStorage.getItem('firstName')
-      const savedLastName = localStorage.getItem('lastName')
-      
-      if (savedUsername) {
-        setUserProfile(prev => ({
-          ...prev,
-          username: `@${savedUsername}`,
-          name: savedFirstName && savedLastName ? `${savedFirstName} ${savedLastName}` : savedUsername
-        }))
-      }
-    }
   }, [])
+
+  useEffect(() => {
+    // Only redirect on client side after mounting
+    if (mounted && !loading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [mounted, loading, isAuthenticated, router])
+
+  // Don't render anything until mounted (prevents hydration mismatch)
+  if (!mounted) {
+    return null
+  }
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <Box 
+        minH="100vh" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        bgGradient="linear(135deg, #000000 0%, #0a2626 100%)"
+      >
+        <Spinner size="xl" color="teal.300" />
+      </Box>
+    )
+  }
+
+  // Show loading while redirecting
+  if (!isAuthenticated) {
+    return (
+      <Box 
+        minH="100vh" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        bgGradient="linear(135deg, #000000 0%, #0a2626 100%)"
+      >
+        <Spinner size="xl" color="teal.300" />
+      </Box>
+    )
+  }
 
   const contentItems = [
     { icon: FaCalendarAlt, type: 'event' },
@@ -137,11 +159,43 @@ const ProfilePage = () => {
         {/* Profile Header */}
         <Container maxW="2xl" py={8}>
           <VStack spacing={6}>
+            {/* Host Banner */}
+            {user?.role === 'host' && (
+              <Box
+                w="full"
+                p={4}
+                bg="teal.900"
+                border="1px solid"
+                borderColor="teal.600"
+                rounded="lg"
+                textAlign="center"
+              >
+                <VStack spacing={2}>
+                  <HStack>
+                    <Icon as={FaCalendarAlt} color="teal.300" />
+                    <Text color="teal.300" fontWeight="bold">
+                      You're viewing your personal profile
+                    </Text>
+                  </HStack>
+                  <Text color="gray.300" fontSize="sm">
+                    As a host, you can manage your events from your Host Dashboard
+                  </Text>
+                  <Button
+                    size="sm"
+                    colorScheme="teal"
+                    onClick={() => router.push('/host')}
+                  >
+                    Go to Host Dashboard
+                  </Button>
+                </VStack>
+              </Box>
+            )}
+
             {/* Profile Picture */}
             <Avatar
               size="2xl"
-              src={userProfile.avatar}
-              name={userProfile.name}
+              src="/placeholder-avatar.svg"
+              name={`${user.firstName} ${user.lastName}`}
               border="3px solid"
               borderColor="teal.600"
             />
@@ -149,17 +203,20 @@ const ProfilePage = () => {
             {/* User Info */}
             <VStack spacing={2} textAlign="center">
               <Heading size="xl">
-                {mounted ? userProfile.name : 'Loading...'}
+                {user.firstName} {user.lastName}
               </Heading>
               <Text color="teal.300" fontSize="lg">
-                {mounted ? userProfile.username : '@loading'}
+                @{user.username}
+              </Text>
+              <Text color="gray.400" fontSize="sm">
+                {user.email}
               </Text>
             </VStack>
 
             {/* Bio */}
             <Box maxW="md" textAlign="center">
               <Text color="gray.300" lineHeight="1.6">
-                {userProfile.bio}
+                {user.bio || "Welcome to EventTrack! Update your bio to tell others about yourself."}
               </Text>
             </Box>
 
@@ -188,13 +245,26 @@ const ProfilePage = () => {
               >
                 Settings
               </Button>
+              <Button
+                leftIcon={<FaSignOutAlt />}
+                variant="outline"
+                borderColor="red.600"
+                color="red.300"
+                _hover={{
+                  bg: "red.900",
+                  borderColor: "red.500"
+                }}
+                onClick={logout}
+              >
+                Logout
+              </Button>
             </HStack>
 
             {/* Stats */}
             <HStack spacing={12} py={4}>
-              <StatCard value={userProfile.stats.events} label="Events" />
-              <StatCard value={userProfile.stats.followers} label="Followers" />
-              <StatCard value={userProfile.stats.following} label="Following" />
+              <StatCard value={user.savedEvents?.length || 0} label="Saved Events" />
+              <StatCard value={user.createdEvents?.length || 0} label="Created Events" />
+              <StatCard value={0} label="Following" />
             </HStack>
 
             <Divider borderColor="gray.700" />

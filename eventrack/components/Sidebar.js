@@ -6,7 +6,7 @@ import {
   HStack, 
   Text, 
   Icon, 
-  Link as ChakraLink, 
+  Link as ChakraLink,
   Drawer,
   DrawerBody,
   DrawerOverlay,
@@ -35,23 +35,48 @@ import {
   FaPlane,
   FaComments,
   FaSignInAlt,
-  FaUserPlus
+  FaUserPlus,
+  FaSignOutAlt
 } from 'react-icons/fa'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '../contexts/AuthContext'
+import { useState, useEffect } from 'react'
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { isOpen: isCategoriesOpen, onToggle: onCategoriesToggle } = useDisclosure()
+  const { user, isAuthenticated, logout } = useAuth()
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   const navItems = [
     { icon: FaHome, label: 'Home', href: '/' },
     { icon: FaCompass, label: 'Explore', href: '/explore' },
-    { icon: FaBell, label: 'Notifications', href: '/notifications' },
-    { icon: FaBookmark, label: 'Saved', href: '/saved' },
+    ...(mounted && isAuthenticated ? [
+      { icon: FaBell, label: 'Notifications', href: '/notifications' },
+      { icon: FaBookmark, label: 'Saved', href: '/saved' },
+      ...(user?.role === 'host' ? [
+        { icon: FaCalendarAlt, label: 'Host Dashboard', href: '/host' },
+        { icon: FaUser, label: 'My Profile', href: '/profile' }
+      ] : [
+        { icon: FaUser, label: 'Profile', href: '/profile' }
+      ]),
+      { icon: FaComments, label: 'Chat', href: '/chat' },
+    ] : [])
   ]
 
-  const authItems = [
+  const authItems = (mounted && isAuthenticated) ? [
+    { 
+      icon: FaSignOutAlt, 
+      label: 'Log Out', 
+      action: logout,
+      isButton: true 
+    }
+  ] : [
     { icon: FaSignInAlt, label: 'Sign In', href: '/login' },
     { icon: FaUserPlus, label: 'Sign Up', href: '/signup' },
   ]
@@ -71,26 +96,32 @@ const Sidebar = ({ isOpen, onClose }) => {
         <Text fontWeight="bold" fontSize="xl">EventTrack</Text>
       </HStack>
 
+      {/* User Info (if authenticated) */}
+      {mounted && isAuthenticated && user && (
+        <Box p={3} bg="rgba(45, 55, 72, 0.6)" rounded="lg" border="1px solid" borderColor="teal.600">
+          <VStack spacing={1} align="start">
+            <Text fontWeight="semibold" fontSize="sm">{user.firstName} {user.lastName}</Text>
+            <Text fontSize="xs" color="gray.400">@{user.username}</Text>
+            <Text fontSize="xs" color="teal.300">{user.email}</Text>
+          </VStack>
+        </Box>
+      )}
+
       {/* Navigation */}
       <VStack spacing={4} align="stretch">
         {navItems.map((item) => (
-          <Link key={item.label} href={item.href} passHref>
-            <ChakraLink
-              _hover={{ textDecoration: 'none' }}
-              onClick={onClose}
+          <Link key={item.label} href={item.href} onClick={onClose}>
+            <HStack
+              spacing={3}
+              p={3}
+              rounded="lg"
+              bg={pathname === item.href ? 'teal.900' : 'transparent'}
+              _hover={{ bg: 'teal.900' }}
+              transition="all 0.2s"
             >
-              <HStack
-                spacing={3}
-                p={3}
-                rounded="lg"
-                bg={pathname === item.href ? 'teal.900' : 'transparent'}
-                _hover={{ bg: 'teal.900' }}
-                transition="all 0.2s"
-              >
-                <Icon as={item.icon} w={5} h={5} />
-                <Text fontSize={{ base: "sm", md: "md" }}>{item.label}</Text>
-              </HStack>
-            </ChakraLink>
+              <Icon as={item.icon} w={5} h={5} />
+              <Text fontSize={{ base: "sm", md: "md" }}>{item.label}</Text>
+            </HStack>
           </Link>
         ))}
 
@@ -124,66 +155,51 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <Link
                   key={category.label}
                   href={category.href}
-                  passHref
+                  onClick={onClose}
                 >
-                  <ChakraLink
-                    _hover={{ textDecoration: 'none' }}
-                    onClick={onClose}
+                  <HStack
+                    spacing={3}
+                    p={2}
+                    rounded="lg"
+                    _hover={{ bg: 'teal.900' }}
+                    transition="all 0.2s"
                     w="full"
                   >
-                    <HStack
-                      spacing={3}
-                      p={2}
-                      rounded="lg"
-                      _hover={{ bg: 'teal.900' }}
-                      transition="all 0.2s"
-                    >
-                      <Icon as={category.icon} w={4} h={4} />
-                      <Text fontSize="sm">{category.label}</Text>
-                    </HStack>
-                  </ChakraLink>
+                    <Icon as={category.icon} w={4} h={4} />
+                    <Text fontSize="sm">{category.label}</Text>
+                  </HStack>
                 </Link>
               ))}
             </VStack>
           </Collapse>
         </VStack>
 
-        <Link href="/chat" passHref>
-          <ChakraLink
-            _hover={{ textDecoration: 'none' }}
-            onClick={onClose}
+        <Link href="/chat" onClick={onClose}>
+          <HStack
+            spacing={3}
+            p={3}
+            rounded="lg"
+            bg={pathname === '/chat' ? 'teal.900' : 'transparent'}
+            _hover={{ bg: 'teal.900' }}
+            transition="all 0.2s"
           >
-            <HStack
-              spacing={3}
-              p={3}
-              rounded="lg"
-              bg={pathname === '/chat' ? 'teal.900' : 'transparent'}
-              _hover={{ bg: 'teal.900' }}
-              transition="all 0.2s"
-            >
-              <Icon as={FaComments} w={5} h={5} />
-              <Text fontSize={{ base: "sm", md: "md" }}>Chat</Text>
-            </HStack>
-          </ChakraLink>
+            <Icon as={FaComments} w={5} h={5} />
+            <Text fontSize={{ base: "sm", md: "md" }}>Chat</Text>
+          </HStack>
         </Link>
 
-        <Link href="/profile" passHref>
-          <ChakraLink
-            _hover={{ textDecoration: 'none' }}
-            onClick={onClose}
+        <Link href="/profile" onClick={onClose}>
+          <HStack
+            spacing={3}
+            p={3}
+            rounded="lg"
+            bg={pathname === '/profile' ? 'teal.900' : 'transparent'}
+            _hover={{ bg: 'teal.900' }}
+            transition="all 0.2s"
           >
-            <HStack
-              spacing={3}
-              p={3}
-              rounded="lg"
-              bg={pathname === '/profile' ? 'teal.900' : 'transparent'}
-              _hover={{ bg: 'teal.900' }}
-              transition="all 0.2s"
-            >
-              <Icon as={FaUser} w={5} h={5} />
-              <Text fontSize={{ base: "sm", md: "md" }}>Profile</Text>
-            </HStack>
-          </ChakraLink>
+            <Icon as={FaUser} w={5} h={5} />
+            <Text fontSize={{ base: "sm", md: "md" }}>Profile</Text>
+          </HStack>
         </Link>
       </VStack>
 
@@ -193,11 +209,25 @@ const Sidebar = ({ isOpen, onClose }) => {
           Account
         </Text>
         {authItems.map((item) => (
-          <Link key={item.label} href={item.href} passHref>
-            <ChakraLink
-              _hover={{ textDecoration: 'none' }}
-              onClick={onClose}
+          item.isButton ? (
+            <HStack
+              key={item.label}
+              spacing={3}
+              p={3}
+              rounded="lg"
+              _hover={{ bg: 'teal.900' }}
+              transition="all 0.2s"
+              cursor="pointer"
+              onClick={() => {
+                item.action()
+                onClose()
+              }}
             >
+              <Icon as={item.icon} w={5} h={5} />
+              <Text fontSize={{ base: "sm", md: "md" }}>{item.label}</Text>
+            </HStack>
+          ) : (
+            <Link key={item.label} href={item.href} onClick={onClose}>
               <HStack
                 spacing={3}
                 p={3}
@@ -208,8 +238,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <Icon as={item.icon} w={5} h={5} />
                 <Text fontSize={{ base: "sm", md: "md" }}>{item.label}</Text>
               </HStack>
-            </ChakraLink>
-          </Link>
+            </Link>
+          )
         ))}
       </VStack>
 
