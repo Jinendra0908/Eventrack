@@ -15,7 +15,8 @@ import {
   Flex,
   Badge,
   IconButton,
-  Spinner
+  Spinner,
+  useToast
 } from '@chakra-ui/react'
 import { 
   FaCalendarAlt, 
@@ -62,7 +63,7 @@ const SavedEventCard = ({ event, onRemove }) => (
         transition="all 0.2s ease"
         onClick={(e) => {
           e.stopPropagation()
-          onRemove(event.id)
+          onRemove(event._id || event.id)
         }}
         aria-label="Remove from saved"
         zIndex={1}
@@ -106,8 +107,10 @@ const SavedEventCard = ({ event, onRemove }) => (
 
 const SavedPage = () => {
   const [mounted, setMounted] = useState(false)
+  const [savedEvents, setSavedEvents] = useState([])
   const { user, isAuthenticated, loading } = useAuth()
   const router = useRouter()
+  const toast = useToast()
 
   useEffect(() => {
     setMounted(true)
@@ -119,6 +122,20 @@ const SavedPage = () => {
       router.push('/login')
     }
   }, [mounted, loading, isAuthenticated, router])
+
+  // Load saved events from localStorage
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
+      const saved = localStorage.getItem('savedEvents')
+      if (saved) {
+        try {
+          setSavedEvents(JSON.parse(saved))
+        } catch (error) {
+          console.error('Error loading saved events:', error)
+        }
+      }
+    }
+  }, [mounted])
 
   // Don't render anything until mounted (prevents hydration mismatch)
   if (!mounted) {
@@ -157,8 +174,28 @@ const SavedPage = () => {
 
   // Remove event from saved
   const handleRemoveEvent = (eventId) => {
-    // This would be implemented with the actual API call to remove from saved events
-    console.log('Remove event:', eventId)
+    const eventToRemove = savedEvents.find(event => 
+      event._id === eventId || event.id === eventId
+    )
+    
+    const updatedSavedEvents = savedEvents.filter(event => 
+      event._id !== eventId && event.id !== eventId
+    )
+    setSavedEvents(updatedSavedEvents)
+    
+    // Update localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('savedEvents', JSON.stringify(updatedSavedEvents))
+    }
+    
+    // Show toast notification
+    toast({
+      title: "Event removed",
+      description: `${eventToRemove?.title || 'Event'} has been removed from saved events.`,
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    })
   }
 
   return (
@@ -197,7 +234,7 @@ const SavedPage = () => {
                 Events you've saved for later
               </Text>
               <Badge colorScheme="teal" variant="solid">
-                {user.savedEvents?.length || 0} saved events
+                {savedEvents.length} saved events
               </Badge>
             </VStack>
           </Container>
@@ -206,7 +243,7 @@ const SavedPage = () => {
         {/* Saved Events Grid */}
         <Box p={6}>
           <Container maxW="full">
-            {user.savedEvents && user.savedEvents.length > 0 ? (
+            {savedEvents && savedEvents.length > 0 ? (
               <Grid
                 templateColumns={{
                   base: "1fr",
@@ -216,8 +253,8 @@ const SavedPage = () => {
                 }}
                 gap={6}
               >
-                {user.savedEvents.map((event) => (
-                  <GridItem key={event._id}>
+                {savedEvents.map((event) => (
+                  <GridItem key={event._id || event.id}>
                     <SavedEventCard 
                       event={event} 
                       onRemove={handleRemoveEvent}

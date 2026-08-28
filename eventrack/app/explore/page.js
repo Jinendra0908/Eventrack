@@ -32,6 +32,7 @@ import {
 } from 'react-icons/fa'
 import { useState, memo, useEffect } from 'react'
 import { Sidebar, MobileNavbar } from '../../components/LazyComponents'
+import { useAuth } from '../../contexts/AuthContext'
 
 const EventCard = memo(({ event, onSave, isSaved, onRegister, isRegistered, mounted }) => (
   <Box
@@ -153,6 +154,7 @@ const ExplorePage = () => {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
+  const { user } = useAuth()
   const toast = useToast()
 
   // Load saved events from localStorage and fetch events from API
@@ -170,20 +172,29 @@ const ExplorePage = () => {
         }
       }
       
-      // Load registered events from localStorage
-      const registered = localStorage.getItem('registeredEvents')
-      if (registered) {
-        try {
-          setRegisteredEvents(JSON.parse(registered))
-        } catch (error) {
-          console.error('Error loading registered events:', error)
+      // Load registered events from localStorage (user-specific)
+      if (user?._id) {
+        const registered = localStorage.getItem(`registeredEvents_${user._id}`)
+        if (registered) {
+          try {
+            setRegisteredEvents(JSON.parse(registered))
+          } catch (error) {
+            console.error('Error loading registered events:', error)
+          }
         }
       }
     }
     
     // Fetch events from API
     fetchEvents()
-  }, [])
+  }, [user?._id])
+
+  // Clear registered events when user changes or logs out
+  useEffect(() => {
+    if (!user?._id) {
+      setRegisteredEvents([])
+    }
+  }, [user?._id])
 
   // Fetch events from database
   const fetchEvents = async (category = 'All', search = '') => {
@@ -292,6 +303,18 @@ const ExplorePage = () => {
   const handleRegisterEvent = async (event) => {
     const eventId = event._id || event.id
     
+    // Check if user is logged in
+    if (!user?._id) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to register for events.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      })
+      return
+    }
+    
     // Check if already registered
     const isAlreadyRegistered = registeredEvents.some(regEvent => 
       (regEvent._id === eventId) || (regEvent.id === eventId)
@@ -337,8 +360,8 @@ const ExplorePage = () => {
         const updatedRegisteredEvents = [...registeredEvents, event]
         setRegisteredEvents(updatedRegisteredEvents)
         
-        // Save to localStorage
-        localStorage.setItem('registeredEvents', JSON.stringify(updatedRegisteredEvents))
+        // Save to user-specific localStorage
+        localStorage.setItem(`registeredEvents_${user._id}`, JSON.stringify(updatedRegisteredEvents))
         
         toast({
           title: "Registration successful!",

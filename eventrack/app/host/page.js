@@ -70,7 +70,7 @@ import {
   FaPlus,
   FaMapMarkerAlt,
   FaUsers,
-  FaDollarSign,
+  FaRupeeSign,
   FaEye,
   FaEyeSlash,
   FaTrash,
@@ -472,7 +472,7 @@ const HostProfilePage = () => {
                 <Card bg="gray.800" border="1px solid" borderColor="gray.700">
                   <CardBody textAlign="center">
                     <Text fontSize="2xl" fontWeight="bold" color="purple.300">
-                      ${events.reduce((total, event) => {
+                      ₹{events.reduce((total, event) => {
                         if (event.ticketType === 'paid') {
                           return total + ((event.attendees?.length || 0) * (event.ticketPrice || 0))
                         }
@@ -639,7 +639,7 @@ const HostProfilePage = () => {
                 <Card bg="gray.700" border="1px solid" borderColor="gray.600">
                   <CardBody textAlign="center" py={3}>
                     <Text fontSize="xl" fontWeight="bold" color="green.300">
-                      {selectedEvent?.ticketType === 'free' ? '$0' : `$${(selectedEvent?.attendees?.length || 0) * (selectedEvent?.ticketPrice || 0)}`}
+                      {selectedEvent?.ticketType === 'free' ? '₹0' : `₹${(selectedEvent?.attendees?.length || 0) * (selectedEvent?.ticketPrice || 0)}`}
                     </Text>
                     <Text fontSize="xs" color="gray.400">Total Revenue</Text>
                   </CardBody>
@@ -859,8 +859,8 @@ const EventCard = ({ event, onEdit, onDelete, onViewParticipants }) => {
               <Text>{event.attendees?.length || 0} attendees</Text>
             </HStack>
             <HStack>
-              <Icon as={FaDollarSign} />
-              <Text>{event.ticketType === 'free' ? 'Free' : `$${event.ticketPrice}`}</Text>
+              <Icon as={FaRupeeSign} />
+              <Text>{event.ticketType === 'free' ? 'Free' : `₹${event.ticketPrice}`}</Text>
             </HStack>
           </HStack>
         </VStack>
@@ -963,15 +963,24 @@ const EventModal = ({ isOpen, onClose, title, formData, setFormData, onSubmit, s
                   borderColor="gray.600"
                   color="white"
                   _focus={{ borderColor: 'teal.400' }}
+                  sx={{
+                    option: {
+                      bg: 'gray.800',
+                      color: 'white',
+                      _hover: {
+                        bg: 'gray.700'
+                      }
+                    }
+                  }}
                 >
-                  <option value="Technology">Technology</option>
-                  <option value="Music">Music</option>
-                  <option value="Art">Art</option>
-                  <option value="Sports">Sports</option>
-                  <option value="Gaming">Gaming</option>
-                  <option value="Business">Business</option>
-                  <option value="Food & Drink">Food & Drink</option>
-                  <option value="General">General</option>
+                  <option value="Technology" style={{ backgroundColor: '#1a202c', color: 'white' }}>Technology</option>
+                  <option value="Music" style={{ backgroundColor: '#1a202c', color: 'white' }}>Music</option>
+                  <option value="Art" style={{ backgroundColor: '#1a202c', color: 'white' }}>Art</option>
+                  <option value="Sports" style={{ backgroundColor: '#1a202c', color: 'white' }}>Sports</option>
+                  <option value="Gaming" style={{ backgroundColor: '#1a202c', color: 'white' }}>Gaming</option>
+                  <option value="Business" style={{ backgroundColor: '#1a202c', color: 'white' }}>Business</option>
+                  <option value="Food & Drink" style={{ backgroundColor: '#1a202c', color: 'white' }}>Food & Drink</option>
+                  <option value="General" style={{ backgroundColor: '#1a202c', color: 'white' }}>General</option>
                 </Select>
               </FormControl>
 
@@ -1126,7 +1135,7 @@ const EventModal = ({ isOpen, onClose, title, formData, setFormData, onSubmit, s
 
             {formData.ticketType === 'paid' && (
               <FormControl>
-                <FormLabel color="gray.300">Ticket Price ($)</FormLabel>
+                <FormLabel color="gray.300">Ticket Price (₹)</FormLabel>
                 <NumberInput
                   value={formData.ticketPrice}
                   onChange={(value) => handleInputChange('ticketPrice', parseFloat(value) || 0)}
